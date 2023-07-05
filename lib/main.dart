@@ -4,174 +4,94 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 
 void main() {
-  runApp(NewsApp());
+  runApp(MyApp());
 }
 
-class NewsApp extends StatefulWidget {
+class MyApp extends StatelessWidget {
   @override
-  _NewsAppState createState() => _NewsAppState();
-}
-
-class _NewsAppState extends State<NewsApp> {
-  List<Article> articles = [];
-
-  @override
-  void initState() {
-    super.initState();
-    fetchArticles();
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Recipe APP Demo',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: RecipeScreen(),
+    );
   }
+}
 
-  Future<void> fetchArticles() async {
-    final apiKey = 'f254be3fcce040aeb0a8c561a6c32dd3';
+class RecipeScreen extends StatefulWidget {
+  @override
+  _RecipeScreenState createState() => _RecipeScreenState();
+}
+
+class _RecipeScreenState extends State<RecipeScreen> {
+  List<dynamic> Recipes = [];
+
+  Future fetchrecipe() async {
     final response = await http.get(Uri.parse(
-        'https://newsapi.org/v2/top-headlines?country=us&apiKey=$apiKey'));
-
+        'https://api.edamam.com/search?q=vegetable&app_id=166f88cc&app_key=14530b3d9f8903c7b5b91274db72c713&from=0&to=100&calories=591-722&health=alcohol-free'));
     if (response.statusCode == 200) {
-      final jsonData = json.decode(response.body);
+      final data = json.decode(response.body);
       setState(() {
-        articles = (jsonData['articles'] as List)
-            .map((data) => Article.fromJson(data))
-            .toList();
+        Recipes = data['hits'];
       });
     } else {
-      throw Exception('Failed to load articles');
+      setState(() {
+        Recipes = [];
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'News App',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: Text(
+          'Recipe App Demo',
+          style: GoogleFonts.poppins(
+              fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black),
+        ),
+        elevation: 0,
+        backgroundColor: Colors.white,
       ),
-      home: Scaffold(
-        appBar: AppBar(
-            elevation: 0,
-            backgroundColor: Colors.white,
-            title: Text(
-              "News App",
-              style: GoogleFonts.poppins(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
-            )),
-        body: ListView.builder(
-          itemCount: articles.length,
-          itemBuilder: (context, index) {
-            final article = articles[index];
-            return ListTile(
-              title: Text(
-                article.title,
-                style: GoogleFonts.poppins(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black,
-                ),
-              ),
-              subtitle: Text(
-                "Author: " + article.author,
-                style: GoogleFonts.poppins(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.grey,
-                ),
-              ),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        ArticleDetailsScreen(article: article),
-                  ),
+      body: Column(
+        children: [
+          const SizedBox(height: 16),
+          Expanded(
+            child: FutureBuilder(
+              future: fetchrecipe(),
+              builder: (context, snapshot) {
+                return ListView.builder(
+                  itemCount: Recipes.length,
+                  itemBuilder: (context, index) {
+                    final Recipe = Recipes[index]['recipe'];
+                    return ListTile(
+                      leading: Image.network(
+                        Recipe['image'],
+                        width: 60,
+                        height: 80,
+                      ),
+                      title: Text(
+                        Recipe['label'],
+                        style: GoogleFonts.poppins(
+                            fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(
+                          Recipe['healthLabels'] != null
+                              ? Recipe['healthLabels'][0]
+                              : 'data not available',
+                          style: GoogleFonts.poppins(
+                              fontSize: 16, fontWeight: FontWeight.w500)),
+                    );
+                  },
                 );
               },
-            );
-          },
-        ),
-      ),
-    );
-  }
-}
-
-class Article {
-  final String title;
-  final String author;
-  final String description;
-
-  Article({
-    required this.title,
-    required this.author,
-    required this.description,
-  });
-
-  factory Article.fromJson(Map<String, dynamic> json) {
-    return Article(
-      title: json['title'] ?? '',
-      author: json['author'] ?? '',
-      description: json['description'] ?? '',
-    );
-  }
-}
-
-class ArticleDetailsScreen extends StatelessWidget {
-  final Article article;
-
-  ArticleDetailsScreen({required this.article});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-          elevation: 0,
-          backgroundColor: Colors.white,
-          leading: const Icon(
-            Icons.arrow_back_ios,
-            color: Colors.black,
+            ),
           ),
-          title: Text(
-            "Artical Details",
-            style: GoogleFonts.poppins(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.black,
-            ),
-          )),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              article.title,
-              style: GoogleFonts.poppins(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: Colors.black,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Author: ${article.author}',
-              style: GoogleFonts.poppins(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: Colors.black,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              article.description,
-              style: GoogleFonts.poppins(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: Colors.grey,
-              ),
-            ),
-          ],
-        ),
+        ],
       ),
     );
   }
